@@ -37,21 +37,35 @@ jobs:
       with:
         name: web-app
 
+    - name: Check artifact
+      run: |
+        echo "Artifact downloaded:"
+        ls -lah app.tar.gz
+
     - name: Deploy via SSH
-      uses: appleboy/ssh-action@master # A ready-made deployment tool
+      uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.DEPLOY_HOST }}
         username: ${{ secrets.DEPLOY_USER }}
         password: ${{ secrets.DEPLOY_PASS }}
         script: |
-          # 1. Stop the application (if running)
+          # Create deployment directory if it doesn't exist
+          mkdir -p /opt/mywebapp
+          
+          # Copy the artifact to the server
+          cd /home/${{ secrets.DEPLOY_USER }}
+          
+          # Stop the application (if running)
           sudo systemctl stop mywebapp || true
-
-          # 2. Extract the new code
-          tar -xzvf app.tar.gz -C /opt/mywebapp # Assuming app lives here
-
-          # 3. Install new dependencies (if any)
-          pip install -r /opt/mywebapp/requirements.txt
-
-          # 4. Start the application
+          
+          # Extract the new code
+          tar -xzvf app.tar.gz -C /opt/mywebapp
+          
+          # Install new dependencies
+          cd /opt/mywebapp
+          pip install -r requirements.txt
+          
+          # Start the application
           sudo systemctl start mywebapp
+          
+          echo "Deployment successful!"
